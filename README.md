@@ -26,6 +26,14 @@ Unfortunately there are two versions of Python currently in widespread use--2.7 
 
 Generally speaking, you should have one folder on your computer where you store Python modules--both those that you create and those that you download. As a convention, on the machines in our lab we always use ```C:\code```, but anywhere is fine. Look at the environmental variables on your machine, and see if ```PYTHONPATH``` is defined. If it is, and ```C:\code``` isn't part of it, add it to the path (using the correct delimiter, e.g. ';', for your system). If it's not defined, then create a new envornment variable ```PYTHONPATH``` and set it to ```C:\code```.
 
+## Git and cloning
+
+There are ways to proceed without installing Git, but Git is the best. Install Git, making sure to install the command line tools if you're using Windows. Then, using your terminal, change into ```C:\code``` and issue:
+
+```git clone https://github.com/rjonnal/octoblob```
+
+If your Python is installed and configured correctly, you can change directories into ```octoblob/tests```, type ```python test_create_angiograms.py```, and watch your computer make some angiograms. Try it, it's fun!
+
 ## Getting started
 
 The first step in constructing a script is to import the tools you'll need. ```numpy``` and ```matplotlib``` are the standard numerical and plotting libraries in Python, and are always imported. The ```__future___``` and ```builtins``` imports implement some Python 3 functions, which will make porting this to Python 3 easier.
