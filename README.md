@@ -22,6 +22,12 @@ Unfortunately there are two versions of Python currently in widespread use--2.7 
   
 4. You don't need Anaconda of course. If you know what you're doing you can just install Python, Numpy, Scipy, Matplotlib, Ipython, Jupyter, and a virtual environment manager if you wish.
 
+## Environmental variables
+
+Generally speaking, you should have one folder on your computer where you store Python modules--both those that you create and those that you download. As a convention, on the machines in our lab we always use ```C:\code```, but anywhere is fine. Look at the environmental variables on your machine, and see if ```PYTHONPATH``` is defined. If it is, and ```C:\code``` isn't part of it, add it to the path (using the correct delimiter, e.g. ';', for your system). If it's not defined, then create a new envornment variable ```PYTHONPATH``` and set it to ```C:\code```.
+
+## Getting started
+
 The first step in constructing a script is to import the tools you'll need. ```numpy``` and ```matplotlib``` are the standard numerical and plotting libraries in Python, and are always imported. The ```__future___``` and ```builtins``` imports implement some Python 3 functions, which will make porting this to Python 3 easier.
 
 ```octoblob``` is the unfortunate name I've chosen for the OCT/OCTA processing libraries. It is a descendent of the now obsolete ```octopod``` and ```cuttlefish``` libraries we've used in the past. We could have imported all the classes and functions from octoblob with ```from octoblob import *```, but it's better practice to keep the module name around, so that when module functions are called (e.g. ```bscan = blob.make_bscan(data)```), it's clear that the function is coming from the octoblob package, and clear where one needs to go to find the definition of the function. 
