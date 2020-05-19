@@ -46,8 +46,9 @@ for frame_index in range(4):
     bscan = blob.spectra_to_bscan(frame,oversampled_size=fft_oversampling_size,z1=bscan_z1,z2=bscan_z2)
 
     stack_complex = blob.reshape_repeats(bscan,n_repeats,x1=bscan_x1,x2=bscan_x2)
-    phase_variance,log_bscan = blob.make_angiogram(stack_complex)
+    phase_variance = blob.make_angiogram(stack_complex)
     plt.figure()
     plt.imshow(phase_variance,aspect='auto')
+    plt.pause(.1)
     
 plt.show()

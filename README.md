@@ -1,4 +1,3 @@
-
 # Introduction to OCTA processing code
 
 This document contains instructions for interactively running OCTA processing. It is meant to illustrate the architecture of the processing tool chain, the distinction between the OCT/OCTA libraries and processing scripts, and other important (and confusing) issues. In actuality, the OCTA data will be processed using Python scripts (i.e., batch processing), with no interaction with the user.
@@ -233,9 +232,7 @@ plt.colorbar()
 plt.show()
 ```
 
-
 ![png](./figs/output_25_0.png)
-
 
 ### The OCTA processing functions
 
