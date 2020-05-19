@@ -1,6 +1,24 @@
-# Introduction to OCTA processing code
+# Octoblob: some Python tools for doing OCT/OCTA processing
 
-This document contains instructions for interactively running OCTA processing. It is meant to illustrate the architecture of the processing tool chain, the distinction between the OCT/OCTA libraries and processing scripts, and other important (and confusing) issues. In actuality, the OCTA data will be processed using Python scripts (i.e., batch processing), with no interaction with the user.
+This document contains instructions for installing, interactively running OCTA processing, and creating batch scripts. It is meant to illustrate the architecture of the processing tool chain, the distinction between the OCT/OCTA libraries and processing scripts, and other important (and confusing) issues. In actuality, the OCTA data will be processed using Python scripts (i.e., batch processing), with no interaction with the user.
+
+## Prerequisites
+
+Unfortunately there are two versions of Python currently in widespread use--2.7 and 3.7+ (referred to as Python 2 and Python 3). Currently, Octoblob is written in such a way that it is compatible with Python 2 and 3, but this is unlikely to continue to be the case. Here are instructions for a few cases; all downloads are located [here](https://www.anaconda.com/products/individual).
+
+1. You don't have Python installed at all, and know of no reason to have a Python 2 installation. In this case, just install the Python 3 Anaconda distribution.
+
+2. You use Python 2 extensively and don't want to mess anything up. In this case, you'll need to verify that you have Numpy, Scipy, and Matplotlib installed. Basic octoblob functions will work in Python 2.
+
+3. You use Python 2 but want to create a virtual Python 3 environment. You can do this by executing the following (assuming you want to call the virtual environment "python3"; you can call it whatever you want).
+
+    conda create -n python3 python=3
+    source activate python3
+    conda install numpy scipy matplotlib ipython jupyter
+    
+  If you choose this option, you will have to remember to switch to your python3 environment using ```source activate python3``` before running any octoblob scripts.
+  
+4. You don't need Anaconda of course. If you know what you're doing you can just install Python, Numpy, Scipy, Matplotlib, Ipython, Jupyter, and a virtual environment manager if you wish.
 
 The first step in constructing a script is to import the tools you'll need. ```numpy``` and ```matplotlib``` are the standard numerical and plotting libraries in Python, and are always imported. The ```__future___``` and ```builtins``` imports implement some Python 3 functions, which will make porting this to Python 3 easier.
 
