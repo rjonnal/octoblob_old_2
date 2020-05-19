@@ -13,10 +13,12 @@ Unfortunately there are two versions of Python currently in widespread use--2.7 
 3. You use Python 2 but want to create a virtual Python 3 environment. You can do this by executing the following (assuming you want to call the virtual environment "python3"; you can call it whatever you want).
 
     conda create -n python3 python=3
+    
     source activate python3
+    
     conda install numpy scipy matplotlib ipython jupyter
     
-  If you choose this option, you will have to remember to switch to your python3 environment using ```source activate python3``` before running any octoblob scripts.
+   If you choose this option, you will have to remember to switch to your python3 environment using ```source activate python3``` before running any octoblob scripts.
   
 4. You don't need Anaconda of course. If you know what you're doing you can just install Python, Numpy, Scipy, Matplotlib, Ipython, Jupyter, and a virtual environment manager if you wish.
 
