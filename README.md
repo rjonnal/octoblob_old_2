@@ -14,7 +14,7 @@ Unfortunately there are two versions of Python currently in widespread use--2.7 
 
     ```conda create -n python3 python=3```
     
-    ```source activate python3```
+    ```source activate python3``` or ```conda activate python3```, depending on your OS.
     
     ```conda install numpy scipy matplotlib ipython jupyter```
     
