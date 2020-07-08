@@ -7,7 +7,12 @@ from matplotlib import pyplot as plt
 import scipy.signal as sps
 import scipy.interpolate as spi
 import scipy.io as sio
-
+# A little awkward, but we want to keep a master set
+# of processing parameters at the level of __init__.py,
+# mainly for the purpose of creating releases with
+# "frozen" parameters:
+sys.path.append(os.path.dirname(__file__))
+import processing_parameters as pp
 
 class OCTRawData:
 
@@ -149,7 +154,7 @@ def dc_subtract(spectra):
     out = (spectra.T-dc).T
     return out
 
-def k_resample(spectra,coefficients=[12.5e-10,-12.5e-7,0,0]):
+def k_resample(spectra,coefficients=pp.k_resampling_coefficients):
     """Resample the spectrum such that it is uniform w/r/t k.
     The default coefficients here were experimentally determined
     by Justin Migacz, using the Axsun light source.
@@ -179,7 +184,7 @@ def k_resample(spectra,coefficients=[12.5e-10,-12.5e-7,0,0]):
     interpolated[-1,:] = interpolated[-2,:]
     return interpolated
 
-def dispersion_compensate(spectra,coefficients=[0.0,1.5e-6,0.0,0.0]):
+def dispersion_compensate(spectra,coefficients=pp.dispersion_coefficients):
     # x_in specified on 1..N+1 to accord w/ Justin's code
     # fix this later, ideally as part of a greater effort
     # to define our meshes for mapping and dispersion compensation
@@ -188,7 +193,7 @@ def dispersion_compensate(spectra,coefficients=[0.0,1.5e-6,0.0,0.0]):
     dechirping_phasor = np.exp(-1j*np.polyval(coefficients,x))
     return (spectra.T*dechirping_phasor).T
 
-def gaussian_window(spectra,sigma=0.9):
+def gaussian_window(spectra,sigma=pp.gaussian_window_sigma):
     # WindowMat = repmat(exp(-((linspace(-1,1,size(Aspectra,1)))'.^2)/SIG),[1,C*D2]);
     x = np.exp(-((np.linspace(-1.0,1.0,spectra.shape[0]))**2/sigma))
     return (spectra.T*x).T
@@ -323,7 +328,10 @@ def wrap_into_range(arr,phase_limits=(-np.pi,np.pi)):
     return arr
 
 
-def bulk_motion_correct(phase_stack,mask,n_bins=16,resample_factor=24,n_smooth=5):
+def bulk_motion_correct(phase_stack,mask,
+                        n_bins=pp.bulk_motion_n_bins,
+                        resample_factor=pp.bulk_motion_resample_factor,
+                        n_smooth=pp.bulk_motion_n_smooth):
 
     # Take a stack of B-scan phase arrays, with dimensions
     # (z,x,repeats), and return a bulk-motion corrected
@@ -404,25 +412,20 @@ def make_angiogram(stack_complex):
     # has to be gotten rid of eventually.
     maintain_db_units = False
 
-    if maintain_db_units:
-        #RSJ: not sure how I came up with these--they're wrong.
-        #bulk_correction_threshold = 70.7103 # dB, should give 83081 1's in mask
-        #phase_variance_threshold = 75.851 # dB, 42488 1's in mask
+    # if we wanted to maintain_db_units:
+    #    bulk_correction_threshold = 56.40253 # dB, should give 83081 1's in mask
+    #    phase_variance_threshold = 62.76747 # dB, 42488 1's in mask
 
-        bulk_correction_threshold = 56.40253 # dB, should give 83081 1's in mask
-        phase_variance_threshold = 62.76747 # dB, 42488 1's in mask
+    CSTD = np.std(np.mean(stack_log_amplitude,2))
+    FMID = np.mean(np.mean(stack_log_amplitude,2))
+    stack_log_amplitude = stack_log_amplitude-(FMID-0.9*CSTD)
+    
+    stack_log_amplitude = stack_log_amplitude/stack_log_amplitude.max()
+    stack_amplitude = stack_amplitude/stack_amplitude.max()
 
-    else:
-        CSTD = np.std(np.mean(stack_log_amplitude,2))
-        FMID = np.mean(np.mean(stack_log_amplitude,2))
-        stack_log_amplitude = stack_log_amplitude-(FMID-0.9*CSTD)
-
-        stack_log_amplitude = stack_log_amplitude/stack_log_amplitude.max()
-        stack_amplitude = stack_amplitude/stack_amplitude.max()
-
-        stack_log_amplitude[stack_log_amplitude<0] = 0.0
-        bulk_correction_threshold = 0.3
-        phase_variance_threshold = 0.43
+    stack_log_amplitude[stack_log_amplitude<0] = 0.0
+    bulk_correction_threshold = pp.bulk_correction_threshold
+    phase_variance_threshold = pp.phase_variance_threshold
 
 
     mean_log_amplitude_stack = np.mean(stack_log_amplitude,2)

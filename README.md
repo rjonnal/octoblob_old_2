@@ -218,11 +218,12 @@ plt.show()
 
 ```python
 bscan = blob.spectra_to_bscan(frame,oversampled_size=fft_oversampling_size,z1=bscan_z1,z2=bscan_z2)
-dB_bscan = 20*np.log10(np.abs(bscan))
+# need 'abs' because dispersion compensation introduces imaginary component
+dB_bscan = 20*np.log10(np.abs(bscan)) 
 # define rough contrast lims--if our sensitivity is 90 dB and our dynamic range is 45 dB, then (45,90) will work.
 clim = (45,90)
 plt.figure(dpi=150)
-plt.imshow(dB_bscan,clim=(45,90),aspect='auto') # need 'abs' because dispersion compensation introduces imaginary component
+plt.imshow(dB_bscan,clim=(45,90),aspect='auto') 
 plt.colorbar()
 plt.show()
 ```
@@ -268,13 +269,65 @@ plt.show()
 
 ![png](./figs/output_25_0.png)
 
+
+### Processing parameters
+
+No processing parameters are stored alongside processing functions. They are all stored in the file ```processing_parameters.py``` at the top level. This improves transparancy of the pipeline, and forces values to be codified in releases, which is good. That way, for a given release of the software, the user will automatically get the parameters that were used by developers to process the test data and produce example images.
+
+Here's the full parameter file, with comments:
+
+```python
+# This file contains parameters for the processing
+# pipeline. It is meant to be frozen in releases of
+# octoblob, such that processing can be reproduced
+# perfectly without having to fiddle with them.
+
+# coefficients for resampling lambda into k
+# these coefficients c specify a polynomial p:
+# p(x) = c_0*x^3 + c_1*x^2 + c_2*x + c_3
+# p(x) is a the sampling error in x,
+# and the measured spectra are interpolated from
+# x -> x+p(x)
+k_resampling_coefficients = [12.5e-10,-12.5e-7,0,0]
+
+# these are the coefficients for the unit-amplitude
+# phasor used for removing dispersion chirp; if the
+# coefficients are c, then
+# p(x) = c_0*x^3 + c_1*x^2 + c_2*x + c_3
+# the dechirping phasor D is given by:
+# D = e^[-i*p(x)]
+# the spectra are dechirped by:
+# dechirped_spectrum = spectra*D
+dispersion_coefficients = [0.0,1.5e-6,0.0,0.0]
+
+# the width of the window for gaussian windowing:
+gaussian_window_sigma = 0.9
+
+# paramters for bulk motion estimation, including
+# smoothing by shifting bin edges; see Makita, 2006
+# for a detailed description of the approach;
+# in short, we do a histogram of the B-scan to B-scan
+# phase error, with a fixed number of bins (n_bins);
+# then, we shift the bin edges by a fraction of a
+# bin width and recompute the histogram; the fractional
+# shift is equal to 1/resample_factor
+bulk_motion_n_bins = 16
+bulk_motion_resample_factor = 24
+bulk_motion_n_smooth = 5
+
+# critical parameters: thresholds for bulk motion correction
+# and phase variance computation
+bulk_correction_threshold = 0.3
+phase_variance_threshold = 0.43
+```
+
 ### The OCTA processing functions
 
-Obviously a lot of the work is buried in the OCTA processing functions, and we'll eventually document all of those clearly as well. Here, for example, is the dispersion compensation function:
+Obviously a lot of the work is buried in the OCTA processing functions, and we'll eventually document all of those clearly as well. Here, for example, is the dispersion compensation function. ```pp.dispersion_coefficients``` refers to the value set in ```processing_parameters.py```.
 
 
 ```python
-def dispersion_compensate(spectra,coefficients=[0.0,1.5e-6,0.0,0.0]):
+def dispersion_compensate(spectra,coefficients=pp.dispersion_coefficients):
     # x_in specified on 1..N+1 to accord w/ Justin's code
     # fix this later, ideally as part of a greater effort
     # to define our meshes for mapping and dispersion compensation
@@ -282,5 +335,5 @@ def dispersion_compensate(spectra,coefficients=[0.0,1.5e-6,0.0,0.0]):
     x = np.arange(1,spectra.shape[0]+1)
     dechirping_phasor = np.exp(-1j*np.polyval(coefficients,x))
     return (spectra.T*dechirping_phasor).T
-
 ```
+
