@@ -19,7 +19,7 @@ class OCTRawData:
     def __init__(self,filename,n_vol,n_slow,n_fast,n_depth,
                  n_repeats=1,dtype=np.uint16,dc_crop=50,
                  fbg_position=None,spectrum_start=None,spectrum_end=None,
-                 bit_shift_right=0,n_skip=0):
+                 bit_shift_right=0,n_skip=0,fbg_sign=1):
         
         self.dtype = dtype
         self.n_vol = n_vol
@@ -34,6 +34,7 @@ class OCTRawData:
         self.fbg_position = fbg_position
         self.bit_shift_right = bit_shift_right
         self.n_skip = n_skip
+        self.fbg_sign = fbg_sign
         
         if spectrum_start is None:
             self.spectrum_start = 0
@@ -62,7 +63,7 @@ class OCTRawData:
         print('n_vol\t\t%d\nn_slow\t\t%d\nn_repeats\t%d\nn_fast\t\t%d\nn_depth\t\t%d\nbytes_per_pixel\t%d\ntotal_expected_size\t%d'%(self.n_vol,self.n_slow,self.n_repeats,self.n_fast,self.n_depth,self.bytes_per_pixel,self.n_bytes))
 
 
-    def align_to_fbg(self,frame,region_height=48,smoothing_size=2):
+    def align_to_fbg(self,frame,region_height=48,smoothing_size=2,sign=1):
         # The algorithm here is copied from Justin Migacz's MATLAB prototype; one
         # key difference is that Justin cats 5 sets of spectra together, such that
         # they share the same k-axis; this step is performed on a "compound" frame,
@@ -82,7 +83,7 @@ class OCTRawData:
         fbg_region = sps.convolve2d(fbg_region,np.ones((smoothing_size,1)),mode='valid')
         
         # do the vertical derivative:
-        fbg_region_derivative = np.diff(fbg_region,axis=0)
+        fbg_region_derivative = sign*np.diff(fbg_region,axis=0)
 
         # find the index of maximum rise for each column in the derivative:
         # the +1 at the end is just to square this with Justin's code;
@@ -142,7 +143,7 @@ class OCTRawData:
 
             # If there's an fbg, align spectra using the align_to_fbg function
             if self.has_fbg:
-                frame = self.align_to_fbg(frame)
+                frame = self.align_to_fbg(frame,sign=self.fbg_sign)
 
             frame = frame[self.spectrum_start:self.spectrum_end,:]
         return frame
