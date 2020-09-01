@@ -128,12 +128,13 @@ class OCTRawData:
             # OCT experiments, which have multiple volumes.
             position = volume_index * self.n_depth * self.n_fast * self.n_slow * self.bytes_per_pixel + frame_index * self.n_depth * self.n_fast * self.bytes_per_pixel + self.n_skip * self.n_depth * self.bytes_per_pixel
 
+            
             # Skip to the desired position for reading.
             fid.seek(position,0)
 
             # Use numpy fromfile to read raw data.
             frame = np.fromfile(fid,dtype=self.dtype,count=self.n_depth*self.n_fast)
-
+            
             # Bit-shift if necessary, e.g. for Axsun data
             if self.bit_shift_right:
                 frame = np.right_shift(frame,self.bit_shift_right)
@@ -329,10 +330,10 @@ def wrap_into_range(arr,phase_limits=(-np.pi,np.pi)):
     return arr
 
 
-def bulk_motion_correct(phase_stack,mask,
-                        n_bins=pp.bulk_motion_n_bins,
-                        resample_factor=pp.bulk_motion_resample_factor,
-                        n_smooth=pp.bulk_motion_n_smooth):
+def bulk_motion_correct_original(phase_stack,mask,
+                                 n_bins=pp.bulk_motion_n_bins,
+                                 resample_factor=pp.bulk_motion_resample_factor,
+                                 n_smooth=pp.bulk_motion_n_smooth):
 
     # Take a stack of B-scan phase arrays, with dimensions
     # (z,x,repeats), and return a bulk-motion corrected
@@ -388,6 +389,86 @@ def bulk_motion_correct(phase_stack,mask,
     out = wrap_into_range(out)
 
     return out
+
+def get_phase_jumps(phase_stack,mask,
+                    n_bins=pp.bulk_motion_n_bins,
+                    resample_factor=pp.bulk_motion_resample_factor,
+                    n_smooth=pp.bulk_motion_n_smooth):
+
+    # Take a stack of B-scan phase arrays, with dimensions
+    # (z,x,repeats), and return a bulk-motion corrected
+    # version
+
+    n_depth = phase_stack.shape[0]
+    n_fast = phase_stack.shape[1]
+    n_reps = phase_stack.shape[2]
+    
+    d_phase_d_t = np.diff(phase_stack,axis=2)
+
+    # multiply each frame of the diff array by
+    # the mask, so that only valid values remain;
+    # Then wrap any values above pi or below -pi into (-pi,pi) interval.
+    d_phase_d_t = np.transpose(np.transpose(d_phase_d_t,(2,0,1))*mask,(1,2,0))
+    d_phase_d_t = wrap_into_range(d_phase_d_t)
+    
+    bin_edges = np.linspace(-np.pi,np.pi,n_bins)
+    
+    # The key idea here is from Makita, 2006, where it is well explained. In
+    # addition to using the phase mode, we also do bin-shifting, in order to
+    # smooth the histogram. Again departing from Justin's approach, let's
+    # just specify the top level bins and a resampling factor, and let the
+    # histogram function do all the work of setting the shifted bin edges.
+
+    b_jumps = np.zeros((d_phase_d_t.shape[1:]))
+    
+    for f in range(n_fast):
+        valid_idx = mask[:,f]
+        for r in range(n_reps-1):
+            vals = d_phase_d_t[valid_idx,f,r]
+            [counts,bin_centers] = bin_shift_histogram(vals,bin_edges,resample_factor,do_plots=False)
+            bulk_shift = bin_centers[np.argmax(counts)]
+            b_jumps[f,r] = bulk_shift
+
+    # Now unwrap to prevent discontinuities (although this may not impact complex variance)
+    b_jumps = np.unwrap(b_jumps,axis=0)
+
+    # Smooth by convolution. Don't forget to divide by kernel size!
+    b_jumps = sps.convolve2d(b_jumps,np.ones((n_smooth,1)),mode='same')/float(n_smooth)
+
+    return b_jumps
+
+def bulk_motion_correct(phase_stack,mask,
+                        n_bins=pp.bulk_motion_n_bins,
+                        resample_factor=pp.bulk_motion_resample_factor,
+                        n_smooth=pp.bulk_motion_n_smooth):
+
+    # Take a stack of B-scan phase arrays, with dimensions
+    # (z,x,repeats), and return a bulk-motion corrected
+    # version
+    
+    n_reps = phase_stack.shape[2]
+
+    b_jumps = get_phase_jumps(phase_stack,mask,
+                              n_bins=pp.bulk_motion_n_bins,
+                              resample_factor=pp.bulk_motion_resample_factor,
+                              n_smooth=pp.bulk_motion_n_smooth)
+
+    # Now, subtract b_jumps from phase_stack, not including the first repeat
+    # Important: this is happening by broadcasting--it requires that the
+    # last two dimensions of phase_stack[:,:,1:] be equal in size to the two
+    # dimensions of b_jumps
+    out = np.copy(phase_stack)
+    for rep in range(1,n_reps):
+        # for each rep, the total error is the sum of
+        # all previous errors
+        err = np.sum(b_jumps[:,:rep],axis=1)
+        out[:,:,rep] = out[:,:,rep]-err
+        
+    out = wrap_into_range(out)
+
+    return out
+
+
 
 def phase_variance(data_phase,mask):
     # Assumes the temporal dimension is the last, dim 2
