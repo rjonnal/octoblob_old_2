@@ -11,10 +11,15 @@ import octoblob as blob
 filename = './octa_test_set.unp'
 n_vol = 1
 
+
+
 # Here, let's use the actual number of B-scans in the file
 n_slow = 20
-
 n_repeats = 1
+
+# Which B-scans to use? Valid values are 'odd', 'even', and 'both'
+bscan_sequence = 'even'
+
 n_fast = 500
 n_skip = 500
 n_depth = 1536
@@ -47,11 +52,21 @@ try:
 except Exception as e:
     pass
 
-for frame_index in range(n_slow-1):
-    print('frame %d of %d'%(frame_index+1,n_slow-1))
+if bscan_sequence.lower()=='both':
+    start = 0
+    stride = 1
+elif bscan_sequence.lower()=='even':
+    start = 0
+    stride = 2
+elif bscan_sequence.lower()=='odd':
+    start = 1
+    stride = 2
+
+for frame_index in range(start,n_slow-stride,stride):
+    print('frame %d of %d'%(frame_index,n_slow-stride))
     npy_filename = os.path.join('bscan_npy','scan_%03d.npy'%frame_index)
     frame1 = src.get_frame(frame_index)
-    frame2 = src.get_frame(frame_index+1)
+    frame2 = src.get_frame(frame_index+stride)
     bscans = []
     for frame in [frame1,frame2]:
         frame = blob.dc_subtract(frame)
