@@ -17,6 +17,12 @@ n_vol = 1
 n_slow = 20
 n_repeats = 1
 
+# Specify the noise region in x and z
+noise_x1 = 20
+noise_x2 = 380
+noise_z1 = 100
+noise_z2 = 200
+
 # Which B-scans to use? Valid values are 'odd', 'even', and 'both'
 bscan_sequence = 'even'
 
@@ -29,6 +35,9 @@ dtype=np.uint16
 fbg_position = 148
 spectrum_start = 159
 spectrum_end = 1459
+
+L0 = 1060e-9
+n = 1.38
 
 src = blob.OCTRawData(filename,n_vol,n_slow,n_fast,n_depth,n_repeats,fbg_position=fbg_position,spectrum_start=spectrum_start,spectrum_end=spectrum_end,bit_shift_right=bit_shift_right,n_skip=n_skip,dtype=dtype)
 
@@ -46,6 +55,7 @@ bscan_x2 = -100
 # to be bulk-motion corrected
 
 all_phase_jumps = []
+all_theoretical_phase_sensitivities = []
 
 try:
     os.mkdir('bscan_npy')
@@ -76,7 +86,31 @@ for frame_index in range(start,n_slow-stride,stride):
         bscan = blob.spectra_to_bscan(frame,oversampled_size=fft_oversampling_size,z1=bscan_z1,z2=bscan_z2)
         bscans.append(bscan)
 
-    np.save(npy_filename,bscans[0])
+    sz,sx = bscan.shape
+    # compute SNR
+    noise_region = np.abs(bscan[noise_z1:noise_z2,noise_x1:noise_x2])
+    snr1 = np.max(np.abs(bscan),axis=0)/np.mean(noise_region)
+    snr2 = np.max(np.abs(bscan),axis=0)/np.std(noise_region)
+    theoretical_phase_sensitivity = np.sqrt(1/snr2)
+    theoretical_displacement_sensitivity = L0/(4*n*np.pi)*theoretical_phase_sensitivity
+    
+    all_theoretical_phase_sensitivities.append(theoretical_phase_sensitivity.T)
+    
+    if frame_index==0:
+        plt.imshow(np.log(np.abs(bscans[0])),cmap='gray')
+        plt.autoscale(False)
+        plt.axvspan(noise_x1,noise_x2,ymin=1.0-float(noise_z1)/float(sz),ymax=1.0-float(noise_z2)/float(sz),alpha=0.25)
+        #plt.plot([noise_x1,noise_x2,noise_x2,noise_x1,noise_x1],
+        #         [noise_z1,noise_z1,noise_z2,noise_z2,noise_z1],
+        #         'r-')
+        plt.title('noise region')
+        plt.figure()
+        plt.plot(snr1,label='mean noise')
+        plt.plot(snr2,label='std noise')
+        plt.legend()
+        plt.show()
+        
+    np.save(npy_filename,bscan)
     bscans = np.array(bscans)
     
     stack_complex = np.transpose(bscans,(1,2,0))
@@ -103,14 +137,21 @@ for frame_index in range(start,n_slow-stride,stride):
     
     phase_jumps = blob.get_phase_jumps(stack_phase,phase_stability_mask)
     all_phase_jumps.append(phase_jumps.T)
-    print(np.array(all_phase_jumps).shape)
+    #print(np.array(all_phase_jumps).shape)
     
 all_phase_jumps = np.squeeze(np.array(all_phase_jumps))
-
+all_theoretical_phase_sensitivities = np.squeeze(np.array(all_theoretical_phase_sensitivities))
 
 plt.figure()
 plt.imshow(all_phase_jumps,aspect='auto')
 plt.title('phase error between B-scans (rad)')
+plt.xlabel('fast scan direction')
+plt.ylabel('B-scan number')
+plt.colorbar()
+
+plt.figure()
+plt.imshow(all_theoretical_phase_sensitivities,aspect='auto')
+plt.title('theoretical phase sensitivity (rad)')
 plt.xlabel('fast scan direction')
 plt.ylabel('B-scan number')
 plt.colorbar()
