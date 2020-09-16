@@ -24,7 +24,7 @@ noise_z1 = 100
 noise_z2 = 200
 
 # Which B-scans to use? Valid values are 'odd', 'even', and 'both'
-bscan_sequence = 'even'
+bscan_sequence = 'both'
 
 n_fast = 500
 n_skip = 500
@@ -142,12 +142,17 @@ for frame_index in range(start,n_slow-stride,stride):
 all_phase_jumps = np.squeeze(np.array(all_phase_jumps))
 all_theoretical_phase_sensitivities = np.squeeze(np.array(all_theoretical_phase_sensitivities))
 
+np.save('theoretical_phase_sensitivity.npy',all_theoretical_phase_sensitivities)
+np.save('measured_phase_instability.npy',all_phase_jumps)
+
+
 plt.figure()
 plt.imshow(all_phase_jumps,aspect='auto')
 plt.title('phase error between B-scans (rad)')
 plt.xlabel('fast scan direction')
 plt.ylabel('B-scan number')
 plt.colorbar()
+plt.savefig('measured_phase_instability.png')
 
 plt.figure()
 plt.imshow(all_theoretical_phase_sensitivities,aspect='auto')
@@ -155,6 +160,7 @@ plt.title('theoretical phase sensitivity (rad)')
 plt.xlabel('fast scan direction')
 plt.ylabel('B-scan number')
 plt.colorbar()
+plt.savefig('theoretical_phase_sensitivity.png')
 
 # trim edges, which have weird artifacts, and plot average along B-scan
 average_phase_jumps = np.mean(all_phase_jumps[:,3:-3],axis=1)
