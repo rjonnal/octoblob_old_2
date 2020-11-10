@@ -63,7 +63,7 @@ class OCTRawData:
         print('n_vol\t\t%d\nn_slow\t\t%d\nn_repeats\t%d\nn_fast\t\t%d\nn_depth\t\t%d\nbytes_per_pixel\t%d\ntotal_expected_size\t%d'%(self.n_vol,self.n_slow,self.n_repeats,self.n_fast,self.n_depth,self.bytes_per_pixel,self.n_bytes))
 
 
-    def align_to_fbg(self,frame,region_height=48,smoothing_size=2,sign=1):
+    def align_to_fbg(self,frame,region_height=48,smoothing_size=5,sign=1,do_plots=False):
         # The algorithm here is copied from Justin Migacz's MATLAB prototype; one
         # key difference is that Justin cats 5 sets of spectra together, such that
         # they share the same k-axis; this step is performed on a "compound" frame,
@@ -72,6 +72,13 @@ class OCTRawData:
             return frame
         z1 = self.fbg_position-region_height//2
         z2 = self.fbg_position+region_height//2-1
+
+        if do_plots:
+            plt.figure()
+            plt.imshow(frame,cmap='gray')
+            plt.axhspan(z1,z2,alpha=0.2)
+            plt.show()
+        
         
         # crop the relevant region:
         fbg_region = np.zeros((z2-z1,frame.shape[1]))
