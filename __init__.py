@@ -116,7 +116,7 @@ class OCTRawData:
 
         return out
         
-    def get_frame(self,frame_index,volume_index=0):
+    def get_frame(self,frame_index,volume_index=0,plot_fbg=False):
         '''Get a raw frame from a UNP file. This function will
         try to read configuration details from a UNP file with
         the same name but .xml extension instead of .unp.
@@ -151,7 +151,7 @@ class OCTRawData:
 
             # If there's an fbg, align spectra using the align_to_fbg function
             if self.has_fbg:
-                frame = self.align_to_fbg(frame,sign=self.fbg_sign)
+                frame = self.align_to_fbg(frame,sign=self.fbg_sign,do_plots=plot_fbg)
 
             frame = frame[self.spectrum_start:self.spectrum_end,:]
         return frame
