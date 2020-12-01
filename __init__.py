@@ -7,6 +7,7 @@ from matplotlib import pyplot as plt
 import scipy.signal as sps
 import scipy.interpolate as spi
 import scipy.io as sio
+
 # A little awkward, but we want to keep a master set
 # of processing parameters at the level of __init__.py,
 # mainly for the purpose of creating releases with
@@ -75,7 +76,7 @@ class OCTRawData:
 
         if do_plots:
             plt.figure()
-            plt.imshow(frame,cmap='gray')
+            plt.imshow(frame,cmap='gray',aspect='auto')
             plt.axhspan(z1,z2,alpha=0.2)
             plt.show()
         
@@ -475,7 +476,8 @@ def bulk_motion_correct(phase_stack,mask,
 
     return out
 
-
+def nancount(arr):
+    return len(np.where(np.isnan(arr))[0])
 
 def phase_variance(data_phase,mask):
     # Assumes the temporal dimension is the last, dim 2
@@ -520,6 +522,8 @@ def make_angiogram(stack_complex):
     mean_log_amplitude_stack = np.mean(stack_log_amplitude,2)
     bulk_correction_mask = (mean_log_amplitude_stack>bulk_correction_threshold)
     phase_variance_mask = (mean_log_amplitude_stack>phase_variance_threshold)
+
+
     stack_phase = bulk_motion_correct(stack_phase,bulk_correction_mask)
     pv = phase_variance(stack_phase,phase_variance_mask)
 
