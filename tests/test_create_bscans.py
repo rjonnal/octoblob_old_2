@@ -13,6 +13,7 @@ from bmp_tools import savebmp
 # PARAMETERS FOR RAW DATA SOURCE
 filename = 'oct_test_set.unp'
 
+
 cfg = config_reader.get_configuration(filename.replace('.unp','.xml'))
 output_directory = filename.replace('.unp','')+'_bscans'
 

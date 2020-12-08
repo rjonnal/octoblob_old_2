@@ -194,21 +194,35 @@ def k_resample(spectra,coefficients=pp.k_resampling_coefficients):
     interpolated[-1,:] = interpolated[-2,:]
     return interpolated
 
-def dispersion_compensate(spectra,coefficients=pp.dispersion_coefficients):
+def dispersion_compensate(spectra,coefficients=pp.dispersion_coefficients,diagnostics=False):
     # x_in specified on 1..N+1 to accord w/ Justin's code
     # fix this later, ideally as part of a greater effort
     # to define our meshes for mapping and dispersion compensation
     # on k instead of integer index
     x = np.arange(1,spectra.shape[0]+1)
     dechirping_phasor = np.exp(-1j*np.polyval(coefficients,x))
-    return (spectra.T*dechirping_phasor).T
+    dechirped = (spectra.T*dechirping_phasor).T
+    if diagnostics:
+        before = 20*np.log10(np.abs(np.fft.fft(spectra,axis=0)))
+        after = 20*np.log10(np.abs(np.fft.fft(dechirped,axis=0)))
+        plt.figure()
+        plt.subplot(1,2,1)
+        plt.imshow(before,cmap='gray',aspect='auto',clim=[40,80])
+        plt.colorbar()
+        plt.title('before disp. comp. (dB)')
+        plt.subplot(1,2,2)
+        plt.imshow(after,cmap='gray',aspect='auto',clim=[40,80])
+        plt.colorbar()
+        plt.title('after disp. comp. (dB)')
+    return dechirped
+    
 
 def gaussian_window(spectra,sigma=pp.gaussian_window_sigma):
     # WindowMat = repmat(exp(-((linspace(-1,1,size(Aspectra,1)))'.^2)/SIG),[1,C*D2]);
     x = np.exp(-((np.linspace(-1.0,1.0,spectra.shape[0]))**2/sigma))
     return (spectra.T*x).T
 
-def spectra_to_bscan(spectra,oversampled_size=None,z1=None,z2=None,x1=None,x2=None):
+def spectra_to_bscan(spectra,oversampled_size=None,z1=None,z2=None,x1=None,x2=None,diagnostics=False):
     # pass oversampled_size to fft.fft as parameter n, which will
     # produce the desired behavior in the absense of oversampling,
     # viz. return the original size
@@ -219,8 +233,20 @@ def spectra_to_bscan(spectra,oversampled_size=None,z1=None,z2=None,x1=None,x2=No
     # 
     # We can leave these as Nones if that's what's passed in, because
     # None as a slice index defaults to the original start/end indices
-    return np.fft.fft(spectra,axis=0,n=oversampled_size)[z1:z2]
+    #return np.fft.fft(spectra,axis=0,n=oversampled_size)[z1:z2]
+    bscan = np.fft.fft(spectra,axis=0,n=oversampled_size)
+    if diagnostics:
+        plt.figure()
+        plt.imshow(20*np.log10(np.abs(bscan)),cmap='gray',clim=[40,80],aspect='auto')
+        plt.axhline(z1)
+        if z2>=0:
+            plt.axhline(z2)
+        else:
+            plt.axhline(bscan.shape[0]+z2)
+        plt.title('diagnostics: cropped region, contrast limited to (40,80) dB')
+    return bscan[z1:z2]
 
+    
 def reshape_repeats(multi_bscan,n_repeats,x1=None,x2=None):
     sy,sx = multi_bscan.shape
     # fail if the multi_bscan isn't a multiple of n_repeats
@@ -489,7 +515,7 @@ def phase_variance(data_phase,mask):
     pv[pv<0] = 0.0
     return pv
 
-def make_angiogram(stack_complex):
+def make_angiogram(stack_complex,bulk_correction_threshold=None,phase_variance_threshold=None,diagnostics=False):
     stack_amplitude = np.abs(stack_complex)
     stack_log_amplitude = 20*np.log10(stack_amplitude)
     stack_phase = np.angle(stack_complex)
@@ -515,17 +541,34 @@ def make_angiogram(stack_complex):
     stack_amplitude = stack_amplitude/stack_amplitude.max()
 
     stack_log_amplitude[stack_log_amplitude<0] = 0.0
-    bulk_correction_threshold = pp.bulk_correction_threshold
-    phase_variance_threshold = pp.phase_variance_threshold
+
+    if bulk_correction_threshold is None:
+        bulk_correction_threshold = pp.bulk_correction_threshold
+
+    if phase_variance_threshold is None:
+        phase_variance_threshold = pp.phase_variance_threshold
 
 
     mean_log_amplitude_stack = np.mean(stack_log_amplitude,2)
+    
     bulk_correction_mask = (mean_log_amplitude_stack>bulk_correction_threshold)
     phase_variance_mask = (mean_log_amplitude_stack>phase_variance_threshold)
 
+    if diagnostics:
+        plt.figure()
+        plt.imshow(mean_log_amplitude_stack,cmap='gray',aspect='auto')
+        plt.title('diagnostics: log b-scan')
+        plt.figure()
+        plt.imshow(bulk_correction_mask,cmap='gray',aspect='auto')
+        plt.title('diagnostics: bulk correction mask')
+        plt.figure()
+        plt.imshow(phase_variance_mask,cmap='gray',aspect='auto')
+        plt.title('diagnostics: phase variance mask')
 
     stack_phase = bulk_motion_correct(stack_phase,bulk_correction_mask)
     pv = phase_variance(stack_phase,phase_variance_mask)
 
     return pv
+
+
 
