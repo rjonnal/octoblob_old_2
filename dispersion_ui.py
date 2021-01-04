@@ -1,17 +1,22 @@
 from matplotlib import pyplot as plt
 import numpy as np
 import sys,os
-from bmp_tools import logscale
+from . import bmp_tools
 
 dispersion_3_max = 10.0
 dispersion_2_max = 5.0
 
 dispersion_3_min = -dispersion_3_max
+
 #dispersion_3_multiplier = 1e-16
-dispersion_3_multiplier = 1e-8
+#dispersion_3_multiplier = 1e-8
+dispersion_3_multiplier = 1e-9
+
 dispersion_2_min = -dispersion_2_max
+
 #dispersion_2_multiplier = 1e-10
-dispersion_2_multiplier = 1e-4
+#dispersion_2_multiplier = 1e-4
+dispersion_2_multiplier = 1e-5
 
 c3min = dispersion_3_min*dispersion_3_multiplier
 c3max = dispersion_3_max*dispersion_3_multiplier
@@ -94,7 +99,7 @@ def dispersion_ui(raw_data,func,c3min=c3min,c3max=c3max,c2min=c2min,c2max=c2max)
             imax = max(im)
             imaxes.append(imax)
 
-            im = logscale(im)
+            im = bmp_tools.logscale(im)
 
             peak_max = np.max(imaxes)
             peak_min = np.min(imaxes)

@@ -6,9 +6,11 @@ import sys,os,time,glob
 import numpy as np
 from matplotlib import pyplot as plt
 import octoblob as blob
+
 from octoblob import config_reader
 from octoblob import dispersion_ui
-from bmp_tools import savebmp
+from octoblob.bmp_tools import savebmp
+
 
 # PARAMETERS FOR RAW DATA SOURCE
 filename = 'oct_test_set.unp'
