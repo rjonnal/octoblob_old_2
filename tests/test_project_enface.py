@@ -18,7 +18,19 @@ flist.sort()
 
 vol = []
 for f in flist:
-    vol.append(np.load(f))
+    arr = np.load(f)
+
+    # in case data are complex:
+    arr = np.abs(arr)
+    
+    # in case we're working with a stack:
+    try:
+        assert len(arr.shape)==2
+    except AssertionError as ae:
+        print('Averaging stack in slow/BM direction.')
+        arr = arr.mean(2)
+        
+    vol.append(arr)
 
 vol = np.array(vol)
 profile = vol.mean(2).mean(0)
@@ -51,5 +63,7 @@ plt.yticks([])
 
 plt.savefig(os.path.join(output_directory,'%s.png'%tag),dpi=print_dpi)
 np.save(os.path.join(output_directory,'%s.npy'%tag),efp)
+print('Saving PNG and NPY files to %s.'%output_directory)
 
+plt.show()
 
